@@ -148,7 +148,10 @@ main = do
       includeDirs <- liftM lines $ llvmConfig ["--includedir"]
       libDirs@[libDir] <- liftM lines $ llvmConfig ["--libdir"]
       [llvmVersion] <- liftM lines $ llvmConfig ["--version"]
-      let getLibs = liftM (map (fromJust . stripPrefix "-l") . words) . llvmConfig
+      
+      let stripSuffix suf str = let r = reverse in liftM r (stripPrefix (r suf) (r str))
+      let stripWindowsLib lib = stripSuffix ".lib" $ fromMaybe lib $ stripPrefix (libDir ++ "\\") lib
+      let getLibs = liftM (map (\x -> fromMaybe x $ listToMaybe $ catMaybes [(stripPrefix "-l" x), (stripWindowsLib x)]) . words) . llvmConfig
           flags    = configConfigurationsFlags configFlags
           linkFlag = case lookup (mkFlagName "shared-llvm") flags of
                        Nothing     -> "--link-shared"
